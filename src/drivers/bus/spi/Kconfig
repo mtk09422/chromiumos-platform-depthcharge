@@ -34,3 +34,8 @@ config DRIVER_BUS_SPI_TEGRA
 	bool "Tegra SPI driver"
 	depends on DRIVER_DMA_TEGRA_APB
 	default n
+
+config DRIVER_BUS_SPI_MTK
+	bool "mt8135 SPI driver"
+	default n
+	depends on ARCH_ARM
