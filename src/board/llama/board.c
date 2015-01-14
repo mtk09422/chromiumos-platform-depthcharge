@@ -25,6 +25,9 @@
 #include "base/init_funcs.h"
 #include "board/llama/power_ops.h"
 #include "drivers/bus/i2c/mtk_i2c.h"
+#include "drivers/ec/cros/ec.h"
+#include "drivers/ec/cros/spi.h"
+#include "drivers/bus/spi/mt8135.h"
 #include "drivers/gpio/sysinfo.h"
 #include "drivers/gpio/mtk_gpio.h"
 #include "drivers/storage/mtk_mmc.h"
@@ -55,6 +58,26 @@ static int board_setup(void)
 	i2c->speed = 100;
 	i2cBus = new_mtk_i2c(i2c, 0, 0);
 	tpm_set_ops(&new_slb9635_i2c(&i2cBus->ops, 0x20)->base.ops);
+
+	struct mt8135_spi_cfg *spi_cfg = xzalloc(sizeof(*spi_cfg));
+
+	spi_cfg->high_time = 8;
+	spi_cfg->low_time = 8;
+	spi_cfg->setuptime = 4;
+	spi_cfg->holdtime = 4;
+	spi_cfg->cs_idletime = 4;
+	spi_cfg->cpha = 0;
+	spi_cfg->cpol = 0;
+	spi_cfg->rx_endian = 0;
+	spi_cfg->tx_endian = 0;
+	spi_cfg->rx_mlsb = 1;
+	spi_cfg->tx_mlsb = 1;
+	spi_cfg->tckdly = 3;
+	spi_cfg->pause = 1;
+	spi_cfg->deassert = 0;
+	MT8135Spi *spiBus = new_mt8135_spi(0x11016000, spi_cfg);
+	CrosEcSpiBus *cros_ec_spi_bus = new_cros_ec_spi_bus(&spiBus->ops);
+	cros_ec_set_bus(&cros_ec_spi_bus->ops);
 
 	Mt6397Pmic *pmic = new_mt6397_pmic(2, NULL);
 	LlamaPowerOps *power = new_llama_power_ops(&pmic->ops, 1);
