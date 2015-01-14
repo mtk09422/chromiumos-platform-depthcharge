@@ -24,6 +24,7 @@
 
 #include "base/init_funcs.h"
 #include "drivers/bus/i2c/mtk_i2c.h"
+#include "drivers/storage/mtk_mmc.h"
 #include "drivers/tpm/slb9635_i2c.h"
 #include "drivers/tpm/tpm.h"
 
@@ -39,6 +40,10 @@ static int board_setup(void)
 	i2c->speed = 100;
 	i2cBus = new_mtk_i2c(i2c, 0, 0);
 	tpm_set_ops(&new_slb9635_i2c(&i2cBus->ops, 0x20)->base.ops);
+
+	MtkMmcHost *emmc = new_mtk_mmc_host(0x11230000, 8, 0);
+	list_insert_after(&emmc->mmc.ctrlr.list_node,
+			  &fixed_block_dev_controllers);
 
 	return 0;
 }
