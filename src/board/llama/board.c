@@ -23,6 +23,7 @@
 #include <libpayload.h>
 
 #include "base/init_funcs.h"
+#include "board/llama/power_ops.h"
 #include "drivers/bus/i2c/mtk_i2c.h"
 #include "drivers/storage/mtk_mmc.h"
 #include "drivers/flash/mtk_emmc_flash.h"
@@ -41,6 +42,10 @@ static int board_setup(void)
 	i2c->speed = 100;
 	i2cBus = new_mtk_i2c(i2c, 0, 0);
 	tpm_set_ops(&new_slb9635_i2c(&i2cBus->ops, 0x20)->base.ops);
+
+	Mt6397Pmic *pmic = new_mt6397_pmic(2, NULL);
+	LlamaPowerOps *power = new_llama_power_ops(&pmic->ops, 1);
+	power_set_ops(&power->ops);
 
 	MtkMmcHost *emmc = new_mtk_mmc_host(0x11230000, 8, 0);
 	list_insert_after(&emmc->mmc.ctrlr.list_node,
