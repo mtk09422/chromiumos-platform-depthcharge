@@ -21,6 +21,7 @@
 
 #include "base/container_of.h"
 #include "drivers/gpio/mtk_gpio.h"
+#include "drivers/ec/cros/ec.h"
 
 /******************************************************************************
  MACRO Definition
@@ -996,7 +997,22 @@ s32 mt_get_gpio_in(GpioOps *me)
 {
 	MtGpio *gpio = container_of(me, MtGpio, ops);
 	unsigned pin = gpio->pin_num;
+	int status = 1;
 
+	if (pin == GPIO_LID) {
+		if (cros_ec_get_lid_status(&status)) {
+			printf("%s: Could not read ChromeOS EC lid status\n", __func__);
+			return -ERACCESS;
+		}
+		return status;
+	}
+	else if (pin == GPIO_PWRSW) {
+		if (cros_ec_get_power_key_status(&status)) {
+			printf("%s: Could not read ChromeOS EC power key status\n", __func__);
+			return -ERACCESS;
+		}
+		return status;
+	}
 #if LK_SUPPORT_EXT_GPIO
 	return (pin >= GPIO_EXTEND_START) ? mt_get_gpio_in_ext(pin) : mt_get_gpio_in_chip(pin);
 #else

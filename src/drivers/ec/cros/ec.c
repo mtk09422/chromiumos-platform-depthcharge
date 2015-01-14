@@ -379,6 +379,46 @@ static int ec_command(int cmd, int cmd_version,
 				 din, din_len);
 }
 
+int cros_ec_get_lid_status(int *lidstatus)
+{
+	struct ec_params_read_memmap p;
+	uint8_t memmap_switches;
+
+	p.offset = EC_MEMMAP_SWITCHES;
+	p.size = 1;
+
+	if (ec_command(EC_CMD_READ_MEMMAP, 0, &p, sizeof(p), &memmap_switches,
+			sizeof(memmap_switches)) < sizeof(memmap_switches))
+		return -1;
+
+	if (memmap_switches & EC_SWITCH_LID_OPEN)
+		*lidstatus = 1;
+	else
+		*lidstatus = 0;
+
+	return 0;
+}
+
+int cros_ec_get_power_key_status(int *powerkeystatus)
+{
+	struct ec_params_read_memmap p;
+	uint8_t memmap_switches;
+
+	p.offset = EC_MEMMAP_SWITCHES;
+	p.size = 1;
+
+	if (ec_command(EC_CMD_READ_MEMMAP, 0, &p, sizeof(p), &memmap_switches,
+			sizeof(memmap_switches)) < sizeof(memmap_switches))
+		return -1;
+
+	if (memmap_switches & EC_SWITCH_POWER_BUTTON_PRESSED)
+		*powerkeystatus = 1;
+	else
+		*powerkeystatus = 0;
+
+	return 0;
+}
+
 int cros_ec_get_protocol_info(int devidx,
 			      struct ec_response_get_protocol_info *info)
 {

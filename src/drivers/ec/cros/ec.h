@@ -71,6 +71,22 @@ struct cros_ec_keyscan {
 };
 
 /**
+ * Get the lid status of the EC
+ *
+ * @param lidstatus if 1, lid is opened; if 0, lid is closed
+ * @return 0 if ok, -1 on error
+ */
+int cros_ec_get_lid_status(int *lidstatus);
+
+/**
+ * Get the power key status of the EC
+ *
+ * @param powerkeystatus    if 1, power key is pressed; if 0, power key isn't pressed
+ * @return 0 if ok, -1 on error
+ */
+int cros_ec_get_power_key_status(int *powerkeystatus);
+
+/**
  * Read the ID of the ChromeOS EC device
  *
  * The ID is a string identifying the ChromeOS EC device.
