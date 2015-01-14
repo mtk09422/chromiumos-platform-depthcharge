@@ -25,13 +25,21 @@
 #include "base/init_funcs.h"
 #include "board/llama/power_ops.h"
 #include "drivers/bus/i2c/mtk_i2c.h"
+#include "drivers/gpio/sysinfo.h"
+#include "drivers/gpio/mtk_gpio.h"
 #include "drivers/storage/mtk_mmc.h"
 #include "drivers/flash/mtk_emmc_flash.h"
 #include "drivers/tpm/slb9635_i2c.h"
 #include "drivers/tpm/tpm.h"
+#include "vboot/util/flag.h"
 
 static int board_setup(void)
 {
+	sysinfo_install_flags(NULL);
+
+	MtGpio *ec_in_rw = new_mtk_gpio_input(10);
+	flag_install(FLAG_ECINRW, &ec_in_rw->ops);
+
 	struct mtk_i2c_t *i2c = xzalloc(sizeof(*i2c));
 	MTKI2c *i2cBus = xzalloc(sizeof(*i2cBus));
 	i2c->id = 6;
