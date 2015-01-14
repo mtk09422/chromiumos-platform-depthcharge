@@ -19,6 +19,12 @@ config DRIVER_FLASH_MEMMAPPED
 	select DRIVER_FLASH
 	default n
 
+config DRIVER_FLASH_MTK_EMMC
+	bool "MTK eMMC flash"
+	depends on DRIVER_STORAGE_MT8135
+	select DRIVER_FLASH
+	default n
+
 config DRIVER_FLASH_ICH7
 	bool "Intel I/O Controller Hub 7 flash"
 	depends on ARCH_X86
