@@ -23,9 +23,23 @@
 #include <libpayload.h>
 
 #include "base/init_funcs.h"
+#include "drivers/bus/i2c/mtk_i2c.h"
+#include "drivers/tpm/slb9635_i2c.h"
+#include "drivers/tpm/tpm.h"
 
 static int board_setup(void)
 {
+	struct mtk_i2c_t *i2c = xzalloc(sizeof(*i2c));
+	MTKI2c *i2cBus = xzalloc(sizeof(*i2cBus));
+	i2c->id = 6;
+	/* for use pmic i2c. */
+	i2c->dir = 1;
+	i2c->addr = 0x20;
+	i2c->mode = ST_MODE;
+	i2c->speed = 100;
+	i2cBus = new_mtk_i2c(i2c, 0, 0);
+	tpm_set_ops(&new_slb9635_i2c(&i2cBus->ops, 0x20)->base.ops);
+
 	return 0;
 }
 
