@@ -40,6 +40,11 @@ static int board_setup(void)
 	MtGpio *ec_in_rw = new_mtk_gpio_input(10);
 	flag_install(FLAG_ECINRW, &ec_in_rw->ops);
 
+	MtGpio *lid_switch = new_mtk_gpio_input(GPIO_LID);
+	flag_replace(FLAG_LIDSW, &lid_switch->ops);
+	MtGpio *power_switch_l = new_mtk_gpio_input(GPIO_PWRSW);
+	flag_replace(FLAG_PWRSW, &power_switch_l->ops);
+
 	struct mtk_i2c_t *i2c = xzalloc(sizeof(*i2c));
 	MTKI2c *i2cBus = xzalloc(sizeof(*i2cBus));
 	i2c->id = 6;
