@@ -25,6 +25,7 @@
 #include "base/init_funcs.h"
 #include "drivers/bus/i2c/mtk_i2c.h"
 #include "drivers/storage/mtk_mmc.h"
+#include "drivers/flash/mtk_emmc_flash.h"
 #include "drivers/tpm/slb9635_i2c.h"
 #include "drivers/tpm/tpm.h"
 
@@ -44,6 +45,10 @@ static int board_setup(void)
 	MtkMmcHost *emmc = new_mtk_mmc_host(0x11230000, 8, 0);
 	list_insert_after(&emmc->mmc.ctrlr.list_node,
 			  &fixed_block_dev_controllers);
+
+	MtkEmmcFlash *emmc_flash = new_mtk_emmc_flash(emmc, 0x400000);
+	if (emmc_flash)
+		flash_set_ops(&emmc_flash->ops);
 
 	return 0;
 }
