@@ -491,6 +491,60 @@ static int mmc_switch(MmcMedia *media, uint8_t set, uint8_t index,
 
 }
 
+#if CONFIG_DRIVER_FLASH_MTK_EMMC
+int mmc_switch_part(MmcCtrlr *ctrlr, uint32_t new_part)
+{
+	int err;
+	uint8_t config;
+
+	ALLOC_CACHE_ALIGN_BUFFER(unsigned char, ext_csd, 512);
+
+	err = mmc_send_ext_csd(ctrlr, ext_csd);
+	if (err)
+		return err;
+
+	if ((IS_SD(ctrlr->media)) || (ext_csd[EXT_CSD_REV] < 3))
+		return -1;
+
+	config = ext_csd[EXT_CSD_PART_CONF];
+
+	/* already set to specified partition */
+	if ((config & EXT_CSD_PART_CONF_ACC_MASK) == new_part)
+		return 0;
+
+	config = (config & ~EXT_CSD_PART_CONF_ACC_MASK) | new_part;
+
+	err = mmc_switch(ctrlr->media, EXT_CSD_CMD_SET_NORMAL,
+			 EXT_CSD_PART_CONF, config);
+	if (err) {
+		err = mmc_send_ext_csd(ctrlr, ext_csd);
+		if (err && (ext_csd[EXT_CSD_PART_CONF] != config))
+			return err;
+	}
+
+	return 0;
+}
+
+lba_t mmc_get_boot_part_blocks(MmcCtrlr *ctrlr, lba_t *blocks_cnt)
+{
+	int err;
+	ALLOC_CACHE_ALIGN_BUFFER(unsigned char, ext_csd, 512);
+
+	if (IS_SD(ctrlr->media))
+		return -1;
+
+	err = mmc_send_ext_csd(ctrlr, ext_csd);
+	if (err)
+		return err;
+
+	if (ext_csd[EXT_CSD_REV] < 3)
+		return -1;
+
+	*blocks_cnt = ext_csd[EXT_CSD_BOOT_MULT] * 128 * 1024 / 512;
+	return 0;
+}
+#endif /* CONFIG_DRIVER_FLASH_MTK_EMMC */
+
 static void mmc_set_bus_width(MmcCtrlr *ctrlr, uint32_t width)
 {
 	ctrlr->bus_width = width;

@@ -28,6 +28,7 @@
 #ifndef __DRIVERS_STORAGE_MMC_H__
 #define __DRIVERS_STORAGE_MMC_H__
 
+#include "config.h"
 #include "drivers/storage/blockdev.h"
 #include "drivers/storage/bouncebuf.h"
 
@@ -165,6 +166,9 @@
 #define EXT_CSD_CARD_TYPE		196	/* RO */
 #define EXT_CSD_SEC_CNT			212	/* RO, 4 bytes */
 #define EXT_CSD_HC_ERASE_GRP_SIZE	224	/* RO */
+#if CONFIG_DRIVER_FLASH_MTK_EMMC
+#define EXT_CSD_BOOT_MULT		226	/* RO */
+#endif /* CONFIG_DRIVER_FLASH_MTK_EMMC */
 
 /*
  * EXT_CSD field definitions
@@ -180,6 +184,13 @@
 #define EXT_CSD_BUS_WIDTH_1	0	/* Card is in 1 bit mode */
 #define EXT_CSD_BUS_WIDTH_4	1	/* Card is in 4 bit mode */
 #define EXT_CSD_BUS_WIDTH_8	2	/* Card is in 8 bit mode */
+
+#if CONFIG_DRIVER_FLASH_MTK_EMMC
+#define EXT_CSD_PART_CONF_ACC_MASK	(0x7)
+#define EXT_CSD_PART_CONF_ACC_DEFAULT	(0x0)	/* default (user) partition */
+#define EXT_CSD_PART_CONF_ACC_BOOT0	(0x1)
+#define EXT_CSD_PART_CONF_ACC_BOOT1	(0x2)
+#endif /* CONFIG_DRIVER_FLASH_MTK_EMMC */
 
 #define R1_ILLEGAL_COMMAND		(1 << 22)
 #define R1_APP_CMD			(1 << 5)
@@ -284,6 +295,16 @@ int mmc_busy_wait_io(volatile uint32_t *address, uint32_t *output,
 		     uint32_t io_mask, uint32_t timeout_ms);
 int mmc_busy_wait_io_until(volatile uint32_t *address, uint32_t *output,
 			   uint32_t io_mask, uint32_t timeout_ms);
+
+#if CONFIG_DRIVER_FLASH_MTK_EMMC
+/*
+ * [TODO] remove mmc_switch_part and mmc_get_boot_part_blocks if emmc as flash
+ * (mtk_emmc_flash) driver is no longer needed. These two functions are added
+ * for mtk_emmc_flash driver.
+ */
+int mmc_switch_part(MmcCtrlr *ctrlr, uint32_t new_part);
+lba_t mmc_get_boot_part_blocks(MmcCtrlr *ctrlr, lba_t *blocks_cnt);
+#endif /* CONFIG_DRIVER_FLASH_MTK_EMMC */
 
 int mmc_setup_media(MmcCtrlr *ctrlr);
 
