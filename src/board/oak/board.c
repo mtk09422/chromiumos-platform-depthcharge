@@ -40,6 +40,7 @@
 #include "drivers/sound/i2s.h"
 #include "drivers/sound/max98090.h"
 #include "drivers/storage/mtk_mmc.h"
+#include "drivers/flash/mtk_nor_flash.h"
 #include "drivers/tpm/slb9635_i2c.h"
 #include "drivers/tpm/tpm.h"
 #include "vboot/util/flag.h"
@@ -99,6 +100,12 @@ static int board_setup(void)
 	sound_set_ops(&sound_route->ops);
 
 	ramoops_buffer(0xb1f00000, 0x100000, 0x20000);
+
+	/* Setup Nor flash ops */
+	MtkNorFlash *nor_flash = new_mtk_nor_flash(0x400000);
+
+	if (nor_flash)
+		flash_set_ops(&nor_flash->ops);
 
 	return 0;
 }
