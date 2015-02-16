@@ -39,6 +39,7 @@
 #include "drivers/sound/i2s.h"
 #include "drivers/sound/max98090.h"
 #include "drivers/storage/mtk_mmc.h"
+#include "drivers/flash/mtk_emmc_flash.h"
 #include "drivers/tpm/slb9635_i2c.h"
 #include "drivers/tpm/tpm.h"
 #include "vboot/util/flag.h"
@@ -98,6 +99,11 @@ static int board_setup(void)
 			  &fixed_block_dev_controllers);
 	list_insert_after(&sd_card->mmc.ctrlr.list_node,
 			  &removable_block_dev_controllers);
+
+	MtkEmmcFlash *emmc_flash = new_mtk_emmc_flash(emmc, 0x400000);
+
+	if (emmc_flash)
+		flash_set_ops(&emmc_flash->ops);
 
 	return 0;
 }
