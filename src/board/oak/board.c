@@ -40,6 +40,7 @@
 #include "drivers/sound/i2s.h"
 #include "drivers/sound/max98090.h"
 #include "drivers/storage/mtk_mmc.h"
+#include "drivers/flash/mtk_emmc_flash.h"
 #include "drivers/tpm/slb9635_i2c.h"
 #include "drivers/tpm/tpm.h"
 #include "vboot/util/flag.h"
@@ -110,6 +111,12 @@ static int board_setup(void)
 		      PMIC_RG_VGP4_SW_EN_MASK, PMIC_RG_VGP4_SW_EN_SHIFT);
 	pmic->set_reg(pmic, DIGLDO_CON22, 3,
 		      PMIC_RG_VGP4_VOSEL_MASK, PMIC_RG_VGP4_VOSEL_SHIFT);
+
+	MtkEmmcFlash *emmc_flash = new_mtk_emmc_flash(emmc, 0x400000);
+
+	if (emmc_flash)
+		flash_set_ops(&emmc_flash->ops);
+
 	return 0;
 }
 
