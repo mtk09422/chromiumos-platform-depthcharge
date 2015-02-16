@@ -27,14 +27,28 @@
 #include "boot/fit.h"
 #include "boot/ramoops.h"
 #include "config.h"
+#include "drivers/bus/i2c/mtk_i2c.h"
 #include "drivers/bus/usb/usb.h"
 #include "drivers/flash/spi.h"
 #include "drivers/sound/i2s.h"
 #include "drivers/sound/max98090.h"
+#include "drivers/tpm/slb9635_i2c.h"
+#include "drivers/tpm/tpm.h"
 
 static int board_setup(void)
 {
 	fit_set_compat("mediatek,mt8173-crosnb");
+
+	struct mtk_i2c_t *i2c = xzalloc(sizeof(*i2c));
+	MTKI2c *i2cBus = xzalloc(sizeof(*i2cBus));
+
+	i2c->base = 0x11009000;
+	i2c->id = 2;
+	i2c->addr = 0x20;
+	i2c->mode = ST_MODE;
+	i2c->speed = 100;
+	i2cBus = new_mtk_i2c(i2c, 0, 0);
+	tpm_set_ops(&new_slb9635_i2c(&i2cBus->ops, 0x20)->base.ops);
 
 	return 0;
 }
