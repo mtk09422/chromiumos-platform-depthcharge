@@ -38,6 +38,7 @@
 #include "drivers/gpio/mtk_gpio.h"
 #include "drivers/sound/i2s.h"
 #include "drivers/sound/max98090.h"
+#include "drivers/storage/mtk_mmc.h"
 #include "drivers/tpm/slb9635_i2c.h"
 #include "drivers/tpm/tpm.h"
 #include "vboot/util/flag.h"
@@ -87,6 +88,11 @@ static int board_setup(void)
 	OakPowerOps *power = new_oak_power_ops(&pmic->ops, 1);
 
 	power_set_ops(&power->ops);
+
+	MtkMmcHost *emmc = new_mtk_mmc_host(0x11230000, 8, 0, NULL);
+
+	list_insert_after(&emmc->mmc.ctrlr.list_node,
+			  &fixed_block_dev_controllers);
 
 	return 0;
 }
