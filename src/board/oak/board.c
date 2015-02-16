@@ -24,6 +24,7 @@
 #include <libpayload.h>
 
 #include "base/init_funcs.h"
+#include "board/oak/power_ops.h"
 #include "boot/fit.h"
 #include "boot/ramoops.h"
 #include "config.h"
@@ -57,6 +58,11 @@ static int board_setup(void)
 	i2c->speed = 100;
 	i2cBus = new_mtk_i2c(i2c, 0, 0);
 	tpm_set_ops(&new_slb9635_i2c(&i2cBus->ops, 0x20)->base.ops);
+
+	Mt6397Pmic *pmic = new_mt6397_pmic(2);
+	OakPowerOps *power = new_oak_power_ops(&pmic->ops, 1);
+
+	power_set_ops(&power->ops);
 
 	return 0;
 }
