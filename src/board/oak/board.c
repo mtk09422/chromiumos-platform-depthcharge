@@ -63,9 +63,13 @@ static int board_setup(void)
 	power_set_ops(&pmic->ops);
 
 	MtkMmcHost *emmc = new_mtk_mmc_host(0x11230000, 8, 0, NULL);
+	GpioOps *card_detect_ops = new_mtk_gpio_input(1);
+	MtkMmcHost *sd_card = new_mtk_mmc_host(0x11240000, 4, 1, card_detect_ops);
 
 	list_insert_after(&emmc->mmc.ctrlr.list_node,
 			  &fixed_block_dev_controllers);
+	list_insert_after(&sd_card->mmc.ctrlr.list_node,
+			  &removable_block_dev_controllers);
 
 	return 0;
 }
