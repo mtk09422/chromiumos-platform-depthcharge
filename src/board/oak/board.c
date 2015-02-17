@@ -30,14 +30,21 @@
 #include "drivers/bus/i2c/mtk_i2c.h"
 #include "drivers/bus/usb/usb.h"
 #include "drivers/flash/spi.h"
+#include "drivers/gpio/sysinfo.h"
+#include "drivers/gpio/mtk_gpio.h"
 #include "drivers/sound/i2s.h"
 #include "drivers/sound/max98090.h"
 #include "drivers/tpm/slb9635_i2c.h"
 #include "drivers/tpm/tpm.h"
+#include "vboot/util/flag.h"
 
 static int board_setup(void)
 {
+	sysinfo_install_flags(NULL);
 	fit_set_compat("mediatek,mt8173-crosnb");
+
+	GpioOps *ec_in_rw_ops = new_mtk_gpio_input(10);
+	flag_install(FLAG_ECINRW, ec_in_rw_ops);
 
 	MTKI2c *i2c2 = new_mtk_i2c(0x11009000, 0x11000200, 2, 0, 0x20,
 				   ST_MODE, 100, 0);
