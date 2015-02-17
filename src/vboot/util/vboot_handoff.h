@@ -30,7 +30,7 @@
 #define MAX_PARSED_FW_COMPONENTS 5
 
 struct firmware_component {
-	uint32_t address;
+	uint64_t address;
 	uint32_t size;
 } __attribute__((packed));
 
