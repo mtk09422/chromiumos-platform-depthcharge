@@ -47,7 +47,7 @@ static int board_setup(void)
 {
 	sysinfo_install_flags(new_mtk_gpio_input);
 
-	fit_set_compat("mediatek,mt8173-crosnb");
+	fit_set_compat_by_rev("google,oak-rev%d", lib_sysinfo.board_id);
 
 	MTKI2c *i2c2 = new_mtk_i2c(0x11009000, 0x11000200, 2, 0, 0x20,
 				   ST_MODE, 100, 0);
