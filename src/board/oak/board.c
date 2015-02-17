@@ -46,7 +46,7 @@
 static int board_setup(void)
 {
 	sysinfo_install_flags(NULL);
-	fit_set_compat("mediatek,mt8173-crosnb");
+	fit_set_compat_by_rev("google,oak-rev%d", 0);
 
 	GpioOps *ec_in_rw_ops = new_mtk_gpio_input(10);
 	flag_install(FLAG_ECINRW, ec_in_rw_ops);
