@@ -28,6 +28,7 @@
 #include "boot/ramoops.h"
 #include "config.h"
 #include "drivers/bus/i2c/mtk_i2c.h"
+#include "drivers/bus/i2s/mt8173.h"
 #include "drivers/bus/usb/usb.h"
 #include "drivers/ec/cros/ec.h"
 #include "drivers/ec/cros/spi.h"
@@ -77,6 +78,21 @@ static int board_setup(void)
 	    lib_sysinfo.framebuffer->physical_address != 0) {
 		display_set_ops(new_mt8173_display());
 	}
+
+	/* Setup sound components */
+	MtkI2s *i2s0 = new_mtk_i2s(0x11220000, 16, 2, 48000,
+				   0x10209000, 0x10000000);
+	I2sSource *i2s_source = new_i2s_source(&i2s0->ops, 48000, 2, 16000);
+	SoundRoute *sound_route = new_sound_route(&i2s_source->ops);
+
+	MTKI2c *i2c0 = new_mtk_i2c(0x11007000, 0x11000100, 0, 0, 0x10,
+				   ST_MODE, 100, 0);
+
+	Max98090Codec *codec = new_max98090_codec(&i2c0->ops, 0x10, 16, 48000,
+						  256, 1);
+	list_insert_after(&codec->component.list_node,
+			  &sound_route->components);
+	sound_set_ops(&sound_route->ops);
 
 	return 0;
 }
