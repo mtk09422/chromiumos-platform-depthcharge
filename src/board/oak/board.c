@@ -79,6 +79,10 @@ static int board_setup(void)
 		display_set_ops(new_mt8173_display());
 	}
 
+	UsbHostController *usb_host = new_usb_hc(XHCI, 0x11270000);
+
+	list_insert_after(&usb_host->list_node, &usb_host_controllers);
+
 	/* Setup sound components */
 	MtkI2s *i2s0 = new_mtk_i2s(0x11220000, 16, 2, 48000,
 				   0x10209000, 0x10000000);
