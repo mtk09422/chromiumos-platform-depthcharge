@@ -25,6 +25,17 @@ config DRIVER_FLASH_MTK_EMMC
 	select DRIVER_FLASH
 	default n
 
+config DRIVER_STORAGE_NOR_MT8173
+	bool "MT8173 NOR"
+	select DRIVER_FLASH
+	default n
+
+config DRIVER_FLASH_MTK_NOR
+        bool "MTK NOR flash"
+        depends on DRIVER_STORAGE_NOR_MT8173
+        select DRIVER_FLASH
+        default n
+
 config DRIVER_FLASH_ICH7
 	bool "Intel I/O Controller Hub 7 flash"
 	depends on ARCH_X86
