@@ -244,18 +244,51 @@ static inline void mtk_i2c_dump_info(struct mtk_i2c_t *i2c)
 	printf("base address %#x\n", (uint32_t)i2c_base);
 }
 
-static uint32_t mtk_i2c_transfer(struct mtk_i2c_t *i2c, uint8_t *buffer, uint32_t len, uint8_t read)
+static uint32_t mtk_i2c_transfer(struct mtk_i2c_t *i2c, I2cSeg *seg, uint8_t read)
 {
 	uint32_t ret_code = I2C_OK;
 	uint32_t i2c_clk;
 	uint16_t status;
 	uint32_t time_out_val = 0;
+	uint32_t write_len = 0;
+	uint32_t read_len = 0;
+	uint8_t *write_buffer = NULL;
+	uint8_t *read_buffer = NULL;
 	uint32_t i2c_base = i2c->base;
 	uint32_t i2c_dmabase = i2c->dma_base;
 
-	if ((len == 0) || (len > 255)) {
-		printf("[i2c_transfer] I2C doesn't support len = %d.\n", len);
-		return I2C_TRANSFER_INVALID_LENGTH;
+        if (read == 0) {
+		write_len = seg[0].len;
+		if ((write_len == 0) || (write_len > 255)) {
+			printf("[i2c_transfer] I2C doesn't support len = %d.\n", write_len);
+			return I2C_TRANSFER_INVALID_LENGTH;
+		}
+		write_buffer = (uint8_t *)malloc(write_len);
+	} else if (read == 1) {
+		read_len = seg[0].len;
+		if ((read_len == 0) || (read_len > 255)) {
+			printf("[i2c_transfer] I2C doesn't support len = %d.\n", read_len);
+			return I2C_TRANSFER_INVALID_LENGTH;
+		}
+
+		read_buffer = (uint8_t *)malloc(read_len);
+	}else if (read == 2) {
+		write_len = seg[0].len;
+		read_len = seg[1].len;
+
+		if ((write_len == 0) || (write_len > 255)) {
+			printf("[i2c_transfer] I2C doesn't support len = %d.\n", write_len);
+			return I2C_TRANSFER_INVALID_LENGTH;
+		}
+		if ((read_len == 0) || (read_len > 255)) {
+			printf("[i2c_transfer] I2C doesn't support len = %d.\n", read_len);
+			return I2C_TRANSFER_INVALID_LENGTH;
+		}
+
+		write_buffer = (uint8_t *)malloc(write_len);
+		read_buffer = (uint8_t *)malloc(read_len);
+	} else {
+		return I2C_TRANSFER_INVALID_ARGUMENT;
 	}
 
 	/* setting path direction and clock first all */
@@ -274,12 +307,6 @@ static uint32_t mtk_i2c_transfer(struct mtk_i2c_t *i2c, uint8_t *buffer, uint32_
 		writew(0x8001, I2CADDR_W(i2c_base, MTK_I2C_EXT_CONF));
 	}
 
-	/* control registers */
-	I2C_SET_TRANS_CTRL(i2c_base, ACK_ERR_DET_EN | DMA_EN |
-			   (i2c->is_clk_ext_disable ? 0 : CLK_EXT) |
-			   (i2c->is_rs_enable ? REPEATED_START_FLAG :
-			    STOP_FLAG));
-
 	/* Clear interrupt status */
 	I2C_CLR_INTR_STATUS(i2c_base, I2C_TRANSAC_COMP | I2C_ACKERR | I2C_HS_NACKERR);
 	I2C_FIFO_CLR_ADDR(i2c_base);
@@ -287,33 +314,76 @@ static uint32_t mtk_i2c_transfer(struct mtk_i2c_t *i2c, uint8_t *buffer, uint32_
 	/* Enable interrupt */
 	I2C_SET_INTR_MASK(i2c_base, I2C_HS_NACKERR | I2C_ACKERR | I2C_TRANSAC_COMP);
 
-	/* Set transfer and transaction len */
-	I2C_SET_TRANSAC_LEN(i2c_base, 1);
-	I2C_SET_TRANS_LEN(i2c_base, len);
+        if (read == 0) {
+		memcpy(write_buffer, seg[0].buf, write_len);
 
-	if (read == 0) {
+		/* control registers */
+		I2C_SET_TRANS_CTRL(i2c_base, ACK_ERR_DET_EN | DMA_EN | CLK_EXT | STOP_FLAG);
+
+		/* Set transfer and transaction len */
+		I2C_SET_TRANSAC_LEN(i2c_base, 1);
+		I2C_SET_TRANS_LEN(i2c_base, write_len);
+
 		/* set i2c write salve address*/
 		I2C_SET_SLAVE_ADDR(i2c_base, i2c->addr << 1);
 
-		dcache_clean_by_mva(buffer, len);
+		dcache_clean_by_mva(write_buffer, write_len);
 
 		/* Prepare buffer data to start transfer */
 		writel(I2C_DMA_INT_FLAG_NONE, I2CADDR_W(i2c_dmabase, OFFSET_INT_FLAG));
 		writel(I2C_DMA_CON_TX, I2CADDR_W(i2c_dmabase, OFFSET_CON));
-		writel((uintptr_t)buffer, I2CADDR_W(i2c_dmabase, OFFSET_TX_MEM_ADDR));
-		writel(len, I2CADDR_W(i2c_dmabase, OFFSET_TX_LEN));
+		writel((uintptr_t)write_buffer, I2CADDR_W(i2c_dmabase, OFFSET_TX_MEM_ADDR));
+		writel(write_len, I2CADDR_W(i2c_dmabase, OFFSET_TX_LEN));
 		writel(I2C_DMA_START_EN, I2CADDR_W(i2c_dmabase, OFFSET_EN));
-	} else if (read == 1) {
+
+        } else if (read == 1) {
+		memcpy(read_buffer, seg[0].buf, read_len);
+
+		/* control registers */
+		I2C_SET_TRANS_CTRL(i2c_base, ACK_ERR_DET_EN | DMA_EN | CLK_EXT | STOP_FLAG);
+
+		/* Set transfer and transaction len */
+		I2C_SET_TRANSAC_LEN(i2c_base, 1);
+		I2C_SET_TRANS_LEN(i2c_base, read_len);
+
 		/* set i2c read salve address*/
 		I2C_SET_SLAVE_ADDR(i2c_base, (i2c->addr << 1 | 0x1));
 
-		dcache_invalidate_by_mva(buffer, len);
+		dcache_invalidate_by_mva(read_buffer, read_len);
 
 		/* Prepare buffer data to start transfer */
 		writel(I2C_DMA_INT_FLAG_NONE, I2CADDR_W(i2c_dmabase, OFFSET_INT_FLAG));
 		writel(I2C_DMA_CON_RX, I2CADDR_W(i2c_dmabase, OFFSET_CON));
-		writel((uintptr_t)buffer, I2CADDR_W(i2c_dmabase, OFFSET_RX_MEM_ADDR));
-		writel(len, I2CADDR_W(i2c_dmabase, OFFSET_RX_LEN));
+		writel((uintptr_t)read_buffer, I2CADDR_W(i2c_dmabase, OFFSET_RX_MEM_ADDR));
+		writel(read_len, I2CADDR_W(i2c_dmabase, OFFSET_RX_LEN));
+		writel(I2C_DMA_START_EN, I2CADDR_W(i2c_dmabase, OFFSET_EN));
+
+        } else if (read == 2) {
+		memcpy(write_buffer, seg[0].buf, write_len);
+		memcpy(read_buffer, seg[1].buf, read_len);
+
+		/* control registers */
+		I2C_SET_TRANS_CTRL(i2c_base, DIR_CHG | ACK_ERR_DET_EN | DMA_EN |
+				   CLK_EXT | REPEATED_START_FLAG);
+
+		/* Set transfer and transaction len */
+		I2C_SET_TRANS_LEN(i2c_base, write_len);
+		I2C_SET_TRANS_AUX_LEN(i2c_base, read_len);
+		I2C_SET_TRANSAC_LEN(i2c_base, 2);
+
+		/* set i2c write salve address*/
+		I2C_SET_SLAVE_ADDR(i2c_base, i2c->addr << 1);
+
+		dcache_clean_by_mva(write_buffer, write_len);
+		dcache_invalidate_by_mva(read_buffer, read_len);
+
+		/* Prepare buffer data to start transfer */
+		writel(I2C_DMA_CLR_FLAG, I2CADDR_W(i2c_dmabase, OFFSET_INT_FLAG));
+		writel(I2C_DMA_CLR_FLAG, I2CADDR_W(i2c_dmabase, OFFSET_CON));
+		writel((uintptr_t)write_buffer, I2CADDR_W(i2c_dmabase, OFFSET_TX_MEM_ADDR));
+		writel(write_len, I2CADDR_W(i2c_dmabase, OFFSET_TX_LEN));
+		writel((uintptr_t)read_buffer, I2CADDR_W(i2c_dmabase, OFFSET_RX_MEM_ADDR));
+		writel(read_len, I2CADDR_W(i2c_dmabase, OFFSET_RX_LEN));
 		writel(I2C_DMA_START_EN, I2CADDR_W(i2c_dmabase, OFFSET_EN));
 	} else {
 		return I2C_TRANSFER_INVALID_ARGUMENT;
@@ -338,6 +408,12 @@ static uint32_t mtk_i2c_transfer(struct mtk_i2c_t *i2c, uint8_t *buffer, uint32_
 			mtk_i2c_dump_info(i2c);
 			break;
 		} else if (status & I2C_TRANSAC_COMP) {
+			dcache_invalidate_by_mva(read_buffer, read_len);
+			if (read == 1) {
+				memcpy(seg[0].buf, read_buffer, read_len);
+			} else if (read == 2) {
+				memcpy(seg[1].buf, read_buffer, read_len);
+			}
 			ret_code = I2C_OK;
 			break;
 		} else if (time_out_val > 100000) {
@@ -360,7 +436,21 @@ static uint32_t mtk_i2c_transfer(struct mtk_i2c_t *i2c, uint8_t *buffer, uint32_
 			  I2C_TRANSAC_COMP);
 	I2C_SOFTRESET(i2c_base);
 
+	if (write_buffer != NULL)
+		free(write_buffer);
+	if (read_buffer != NULL)
+		free(read_buffer);
+
 	return ret_code;
+}
+
+static uint8_t mtk_i2c_should_combine(I2cSeg *seg, int left_count)
+{
+	if (left_count >= 2 && seg[0].read == 0 && seg[1].read == 1 &&
+	    seg[0].chip == seg[1].chip)
+		return 1;
+	else
+		return 0;
 }
 
 static int i2c_transfer(I2cOps *me, I2cSeg *segments, int seg_count)
@@ -368,12 +458,25 @@ static int i2c_transfer(I2cOps *me, I2cSeg *segments, int seg_count)
 	I2cSeg *seg = segments;
 	MTKI2c *bus = container_of(me, MTKI2c, ops);
 	struct mtk_i2c_t *i2c = bus->i2c;
+	int left_count = seg_count;
+	int read;
 	int ret = 0;
 
 	for (int i = 0; i < seg_count; i++) {
-		ret = mtk_i2c_transfer(i2c, seg[i].buf, seg[i].len, seg[i].read);
+		if (mtk_i2c_should_combine(&seg[i], left_count) == 1) {
+			read = 2;
+			left_count -= 2;
+		} else {
+			read = seg[i].read;
+			left_count--;
+		}
+
+		ret = mtk_i2c_transfer(i2c, &seg[i], read);
 		if (ret)
 			break;
+
+		if (read == 2)
+			i++;
 	}
 
 	return ret;
