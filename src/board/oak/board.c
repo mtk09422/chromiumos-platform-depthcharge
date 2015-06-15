@@ -98,6 +98,8 @@ static int board_setup(void)
 			  &sound_route->components);
 	sound_set_ops(&sound_route->ops);
 
+	ramoops_buffer(0xb1f00000, 0x100000, 0x20000);
+
 	return 0;
 }
 
